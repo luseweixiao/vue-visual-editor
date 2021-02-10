@@ -10,21 +10,21 @@ export function matchesSelectorToParentElements (el, selector, baseNode) {
     'mozMatchesSelector',
     'msMatchesSelector',
     'oMatchesSelector'
-  ].find(func => isFunction(node[func]))
+  ].find(func => isFunction(node[func]));
 
-  if (!isFunction(node[matchesSelectorFunc])) return false
+  if (!isFunction(node[matchesSelectorFunc])) return false;
 
   do {
-    if (node[matchesSelectorFunc](selector)) return true
-    if (node === baseNode) return false
-    node = node.parentNode
+    if (node[matchesSelectorFunc](selector)) return true;
+    if (node === baseNode) return false;
+    node = node.parentNode;
   } while (node)
 
   return false
 }
 
 export function getComputedSize ($el) {
-  const style = window.getComputedStyle($el)
+  const style = window.getComputedStyle($el);
 
   return [
     parseFloat(style.getPropertyValue('width'), 10),
@@ -37,24 +37,24 @@ export function addEvent (el, event, handler) {
     return
   }
   if (el.attachEvent) {
-    el.attachEvent('on' + event, handler)
+    el.attachEvent('on' + event, handler);
   } else if (el.addEventListener) {
-    el.addEventListener(event, handler, true)
+    el.addEventListener(event, handler, true);
   } else {
-    el['on' + event] = handler
+    el['on' + event] = handler;
   }
 }
 
 // 删除事件
 export function removeEvent (el, event, handler) {
   if (!el) {
-    return
+    return;
   }
   if (el.detachEvent) {
-    el.detachEvent('on' + event, handler)
+    el.detachEvent('on' + event, handler);
   } else if (el.removeEventListener) {
-    el.removeEventListener(event, handler, true)
+    el.removeEventListener(event, handler, true);
   } else {
-    el['on' + event] = null
+    el['on' + event] = null;
   }
 }

@@ -2,17 +2,22 @@
   <div id="editor"
        class="editor"
        v-if="editMode"
-       style="height: 300px; width: 600px; position: relative;"
+       :style="{
+       width:pageList[currPageIndex].style.width+'px',
+       height:pageList[currPageIndex].style.height+'px',
+       backgroundColor:pageList[currPageIndex].style.backgroundColor,
+       backgroundImage:pageList[currPageIndex].style.backgroundImage}"
+       style=" box-shadow:0px 0px 2px 2px rgba(0,0,0,.2);"
        @contextmenu="handleContextMenu">
-    <!-- key不要用index，不然当调整图层时，焦点组件会变化（跟随渲染的index） -->
+    <!-- key不要用index，不然当调整图层时（图层与index一致），焦点组件会变化 -->
     <VueDraggableResizable v-for="(item,index) in pageList[currPageIndex].componentsData"
                            :key="item.id"
-                           :w="item.style.width"
-                           :h="item.style.height"
-                           :x="item.style.left"
-                           :y="item.style.top"
+                           :w="Number(item.style.width)"
+                           :h="Number(item.style.height)"
+                           :x="Number(item.style.left)"
+                           :y="Number(item.style.top)"
                            :z="index"
-                           :parent="true"
+                           :parent="isParent"
                            :debug="false"
                            :isConflictCheck="false"
                            :snap="snap"
@@ -25,15 +30,19 @@
                            @deactivated="onDeactivated"
                            :draggable="!item.locked"
                            :resizable="!item.locked">
-
-      <!-- <p>{{item.width}}-{{item.height}}</p> -->
+      <!-- 组件 -->
       <component :is="item.component"
                  class="editor-component"
-                 :style="getComponentStyle(item)"
-                 :data-itemindex="index" />
-      <ContextMenu v-if="item==currComponent&&editMode"
+                 :style="getStyle(item)"
+                 :data-itemindex="index"
+                 :propvalue="item.propValue"
+                 v-on:textChange="onTextChange(arguments,index)"
+                 :element="item" />
+      <!-- 右键菜单 -->
+      <ContextMenu v-if="item==currComponent&&menuShow"
                    :isLocked="item.locked" />
     </VueDraggableResizable>
+    <!-- 对齐线 -->
     <span class="ref-line v-line"
           v-for="(item,index) in vLine"
           :key="'v-'+index"
@@ -53,8 +62,7 @@ import { mapState } from 'vuex'
 import '@/components/Editor/vue-draggable-resizable.css'
 import VueDraggableResizable from "@/components/Editor/vue-draggable-resizable"
 import ContextMenu from "@/components/Editor/ContextMenu"
-
-import getStyle from '@/utils/style'
+import { getComponentStyle } from '@/utils/style'
 
 export default {
   components: {
@@ -64,20 +72,32 @@ export default {
   data () {
     return {
       snap: true,
-      snapTolerance: 10,
+      snapTolerance: 6,
       vLine: [],
       hLine: [],
       menuTop: 0,
       menuLeft: 0,
+      isParent: true,//是否进行父元素区域限制，只在拖拽时开启
     }
   },
   methods: {
+    getStyle (item) {
+      return getComponentStyle(item);
+    },
+    onTextChange (val, index) {
+      console.log("onTextChange", val)
+      let currComponent = val[0];
+      currComponent.propValue = val[1];
+
+      this.$store.commit("setCurrComponent", { component: currComponent, index })
+    },
+
     onDeactivated () {
-      // this.$store.commit("changeCurrComponentIndex", -1)
       this.$store.commit("hideContextMenu")
     },
-    onDragStop () {
 
+    onDragStop () {
+      this.isParent = true;
     },
 
     //vals=[left,top,widht,height]
@@ -92,6 +112,8 @@ export default {
 
     //vals=[left,top]
     onDragging (vals, item, index) {
+      this.isParent = true;
+
       item.style.left = vals[0];
       item.style.top = vals[1];
       this.$store.commit("setCurrComponent", { component: item, index });
@@ -101,13 +123,7 @@ export default {
       this.$store.commit("setCurrComponent", { component: item, index });
       this.$store.commit("hideContextMenu")
     },
-    getComponentStyle (item) {
-      return getStyle(item.style, ['top', 'left', 'width', 'height', 'rotate'])
-    },
 
-    getShapeStyle (style) {
-      return getStyle(style, ['width', 'height', 'top', 'left', 'rotate'])
-    },
 
     // 辅助线回调事件
     getRefLineParams (params) {
@@ -122,25 +138,36 @@ export default {
         return item
       })
     },
+
     handleContextMenu (e) {
       e.stopPropagation();
       e.preventDefault();
-      if (Number(e.srcElement.dataset.itemindex) == this.currComponentIndex ||
-        Number(e.target.parentNode.dataset.itemindex) == this.currComponentIndex) {
-        this.$store.commit('showContextMenu')
+      let target = this.findParentNodeByClassName(e.target, 'editor-component');
+      if (target && Number(target.dataset.itemindex) == this.currComponentIndex) {
+        this.$store.commit('showContextMenu');
       }
+    },
+
+    findParentNodeByClassName (el, classname) {
+      let node = el;
+      do {
+        if (node.classList.contains(classname)) return node;
+        node = node.parentNode;
+      } while (node)
+      return null
     }
+
   },
   computed: {
-    ...mapState(["editorStyleData", "pageList", "currPageIndex", "editMode", "currComponent", "currComponentIndex", "preventDeactivation"]),
-  }
+    ...mapState(["pageList", "currPageIndex", "editMode", "currComponent", "currComponentIndex", "preventDeactivation", "menuShow"]),
+  },
 }
 </script>
 
 <style scoped>
 #editor {
-  background-color: #fff;
   position: relative;
+  background-size: cover;
 }
 .editor-component {
   outline: none;

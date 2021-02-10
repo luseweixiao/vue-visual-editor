@@ -7,6 +7,7 @@ import '@/components/UseableComponents' //全局注册自定义组件，要在�
 
 import 'element-ui/lib/theme-chalk/index.css';
 import '@/styles/reset.css'
+
 Vue.use(ElementUI, { size: 'small' });
 
 Vue.config.productionTip = false

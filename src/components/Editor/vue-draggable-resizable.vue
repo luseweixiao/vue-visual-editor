@@ -902,13 +902,13 @@ export default {
             const rs = Math.abs(l - activeLeft) <= this.snapTolerance // 外右
             const RS = Math.abs(r - activeLeft) <= this.snapTolerance // 外右
             // 添加item中线与激活元素边线
-            const vts = Math.abs((l + w / 2) - activeLeft) <= this.snapTolerance
-            const Vbs = Math.abs((l + w / 2) - activeRight) <= this.snapTolerance
+            const vls = Math.abs((l + w / 2) - activeLeft) <= this.snapTolerance
+            const Vrs = Math.abs((l + w / 2) - activeRight) <= this.snapTolerance
 
             tem['display'] = [ts, TS, bs, BS, hc, hc,
               hts, Hbs,
               ls, LS, rs, RS, vc, vc,
-              vts, Vbs]//是否显示
+              vls, Vrs]//是否显示
 
             tem['position'] = [t, b, t, b, t + h / 2, t + h / 2,
               t + h / 2, t + h / 2,
@@ -916,7 +916,6 @@ export default {
               l + w / 2, l + w / 2]
 
             // bln_=item.id=="editor"?false:bln;
-
             //标线显示范围计算
             if (ts) {
               if (bln) {
@@ -992,11 +991,41 @@ export default {
               tem.value.x[2].push(t, b, activeTop, activeBottom)
             }
 
+            // 添加中线与边线对齐
+            if (hts) {
+              if (bln) {
+                this.top = t + h / 2;
+                this.bottom = this.parentHeight - this.top - height;
+              }
+              tem.value.y[2].push(l, r, activeLeft, activeRight)
+            }
+            if (Hbs) {
+              if (bln) {
+                this.top = t + h / 2 - height;
+                this.bottom = this.parentHeight - this.top - height;
+              }
+              tem.value.y[2].push(l, r, activeLeft, activeRight)
+            }
+            if (vls) {
+              if (bln) {
+                this.left = l + w / 2
+                this.right = this.parentWidth - this.left - width
+              }
+              tem.value.x[2].push(t, b, activeTop, activeBottom)
+            }
+            if (Vrs) {
+              if (bln) {
+                this.left = l + w / 2 - width
+                this.right = this.parentWidth - this.left - width
+              }
+              tem.value.x[2].push(t, b, activeTop, activeBottom)
+            }
+
             // 辅助线坐标与是否显示(display)对应的数组,易于循环遍历
             const arrTem = [0, 1, 0, 1, 2, 2,
-              0, 0,
+              2, 2,
               0, 1, 0, 1, 2, 2,
-              0, 0
+              2, 2
             ]
             for (let i = 0; i <= arrTem.length; i++) {
               // 前6为Y辅助线,后6为X辅助线

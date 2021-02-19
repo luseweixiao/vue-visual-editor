@@ -1,6 +1,6 @@
 <template>
   <div class="event-list"
-       v-if="currComponent.events">
+       v-if="currComponent&&currComponent.events">
 
     <div class="div-events">
       <el-tag v-for="event in Object.keys(currComponent.events)"

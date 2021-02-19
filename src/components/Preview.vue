@@ -1,13 +1,17 @@
 <template>
   <div class="preview-bg">
-    <button class="preview-bg-btncloss"
+    <button class="preview-bg-btn save"
+            @click="save">保存</button>
+    <button class="preview-bg-btn closs"
             @click="close">关闭</button>
+
     <div :style="{width:page.style.width+'px',
        height:page.style.height+'px',
        backgroundColor:page.style.backgroundColor,
        backgroundImage:page.style.backgroundImage}"
          style=" box-shadow:0px 0px 2px 2px rgba(0,0,0,.2);"
-         class="preview-container">
+         class="preview-container"
+         ref="previewContainer">
       <component v-for="(item,index) in page.componentsData"
                  :key="item.id"
                  :is="item.component"
@@ -33,6 +37,9 @@ export default {
     }
   },
   methods: {
+    save () {
+      console.log("save", this.$refs.previewContainer)
+    },
     getStyles (item) {
       return getComponentStyle(item);
     },
@@ -62,12 +69,11 @@ export default {
   left: 0;
   position: fixed;
   background: rgba(0, 0, 0, 0.5);
-  z-index: 10;
+  z-index: 1000;
 
-  .preview-bg-btncloss {
+  .preview-bg-btn {
     position: fixed;
     top: 0;
-    right: 30px;
     width: 80px;
     height: 40px;
     z-index: 20;
@@ -82,6 +88,13 @@ export default {
     &:active {
       box-shadow: 1px 1px 5px rgba(0, 0, 0, 0.5);
     }
+  }
+  .save {
+    right: 130px;
+  }
+
+  .closs {
+    right: 30px;
   }
 
   .preview-container {

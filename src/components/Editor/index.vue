@@ -9,6 +9,7 @@
        backgroundImage:pageList[currPageIndex].style.backgroundImage}"
        style=" box-shadow:0px 0px 2px 2px rgba(0,0,0,.2);"
        @contextmenu="handleContextMenu">
+
     <!-- key不要用index，不然当调整图层时（图层与index一致），焦点组件会变化 -->
     <VueDraggableResizable v-for="(item,index) in pageList[currPageIndex].componentsData"
                            :key="item.id"
@@ -36,24 +37,25 @@
                  :style="getStyle(item)"
                  :data-itemindex="index"
                  :propvalue="item.propValue"
-                 v-on:textChange="onTextChange(arguments,index)"
-                 :element="item" />
+                 v-on:textChange="onTextChange(arguments,index)" />
       <!-- 右键菜单 -->
       <ContextMenu v-if="item==currComponent&&menuShow"
                    :isLocked="item.locked" />
     </VueDraggableResizable>
+
     <!-- 对齐线 -->
     <span class="ref-line v-line"
           v-for="(item,index) in vLine"
           :key="'v-'+index"
+          :style="{ left: item.position}"
           v-show="item.display"
-          :style="{ left: item.position, top: item.origin, height: item.lineLength}" />
+          style="top:0;bottom:0;" />
     <span class="ref-line h-line"
           v-for="(item,index) in hLine"
           :key="'h-'+index"
+          :style="{ top: item.position}"
           v-show="item.display"
-          :style="{ top: item.position, left: item.origin, width: item.lineLength}" />
-
+          style="left:0;right:0;" />
   </div>
 </template>
 
@@ -63,21 +65,23 @@ import '@/components/Editor/vue-draggable-resizable.css'
 import VueDraggableResizable from "@/components/Editor/vue-draggable-resizable"
 import ContextMenu from "@/components/Editor/ContextMenu"
 import { getComponentStyle } from '@/utils/style'
+import { debounce } from "lodash";
+import MarkLines from "@/components/Editor/MarkLines"
 
 export default {
   components: {
     VueDraggableResizable,
     ContextMenu,
+    MarkLines
   },
   data () {
     return {
-      snap: true,
-      snapTolerance: 6,
       vLine: [],
       hLine: [],
       menuTop: 0,
       menuLeft: 0,
       isParent: true,//是否进行父元素区域限制，只在拖拽时开启
+      currItem: null,
     }
   },
   methods: {
@@ -85,11 +89,13 @@ export default {
       return getComponentStyle(item);
     },
     onTextChange (val, index) {
-      console.log("onTextChange", val)
-      let currComponent = val[0];
-      currComponent.propValue = val[1];
+      return debounce(function (val, index) {
+        // console.log("onTextChange", val)
+        let currComponent = val[0];
+        currComponent.propValue = val[1];
 
-      this.$store.commit("setCurrComponent", { component: currComponent, index })
+        this.$store.commit("setCurrComponent", { component: currComponent, index })
+      }, 500)
     },
 
     onDeactivated () {
@@ -99,31 +105,38 @@ export default {
     onDragStop () {
       this.isParent = true;
     },
-
     //vals=[left,top,widht,height]
     onResizing (vals, item, index) {
-      item.style.left = vals[0];
-      item.style.top = vals[1];
-      item.style.width = vals[2];
-      item.style.height = vals[3];
+      this.$nextTick(function () {
+        item.style.left = vals[0];
+        item.style.top = vals[1];
+        item.style.width = vals[2];
+        item.style.height = vals[3];
 
-      this.$store.commit("setCurrComponent", { component: item, index });
+        this.$store.commit("setCurrComponent", { component: item, index });
+      })
+
     },
 
     //vals=[left,top]
     onDragging (vals, item, index) {
+
+
       this.isParent = true;
 
       item.style.left = vals[0];
       item.style.top = vals[1];
       this.$store.commit("setCurrComponent", { component: item, index });
+      // eventBus.$emit("move", item);
+
+
     },
 
     onActivated (item, index) {
+      this.currItem = item;
       this.$store.commit("setCurrComponent", { component: item, index });
       this.$store.commit("hideContextMenu")
     },
-
 
     // 辅助线回调事件
     getRefLineParams (params) {
@@ -151,7 +164,7 @@ export default {
     findParentNodeByClassName (el, classname) {
       let node = el;
       do {
-        if (node.classList.contains(classname)) return node;
+        if (node.classList && node.classList.contains(classname)) return node;
         node = node.parentNode;
       } while (node)
       return null
@@ -159,7 +172,7 @@ export default {
 
   },
   computed: {
-    ...mapState(["pageList", "currPageIndex", "editMode", "currComponent", "currComponentIndex", "preventDeactivation", "menuShow"]),
+    ...mapState(["pageList", "currPageIndex", "editMode", "currComponent", "currComponentIndex", "preventDeactivation", "menuShow", "snap", "snapTolerance"]),
   },
 }
 </script>
@@ -173,5 +186,9 @@ export default {
   outline: none;
   width: 100%;
   height: 100%;
+}
+.contextmenu {
+  position: absolute;
+  z-index: 999;
 }
 </style>

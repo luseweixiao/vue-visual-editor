@@ -2,13 +2,13 @@
 const events = {
   redirect (url) {
     if (url) {
-      window.location.href = url
+      window.location.href = url;
     }
   },
 
   alert (msg) {
     if (msg) {
-      alert(msg)
+      alert(msg);
     }
   },
 }

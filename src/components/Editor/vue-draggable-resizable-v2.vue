@@ -24,6 +24,7 @@
 <script>
 import { matchesSelectorToParentElements, getComputedSize, addEvent, removeEvent } from '@/utils/dom'
 import { computeWidth, computeHeight, restrictToBounds, snapToGrid } from '@/utils/fns'
+import { debounce } from "lodash"
 
 const events = {
   mouse: {
@@ -405,7 +406,6 @@ export default {
 
           this.$emit('activated')
           this.$emit('update:active', true)
-          //父组件中，使用v-on:update.sync,利用了eventBus，避免了在子组件中修改父组件传入的prop（这里是active）
         }
 
         if (this.draggable) {
@@ -606,12 +606,15 @@ export default {
     },
     // 移动
     move (e) {
-      if (this.resizing) {
-        this.handleResize(e)
-      } else if (this.dragging) {
-        this.handleDrag(e)
+      if (this.dragging) {
+        this.handleDrag(e);
+      } else if (this.resizing) {
+        debounce(() => {
+          this.handleResize(e)
+        }, 200)
       }
     },
+
     // 元素移动
     async handleDrag (e) {
       const axis = this.axis
@@ -726,11 +729,14 @@ export default {
       if (this.onResize(this.handle, this.left, this.top, width, height) === false) {
         return
       }
-
+      // this.left = left
+      // this.top = top
+      // this.right = right
+      // this.bottom = bottom
       this.width = computeWidth(this.parentWidth, this.left, this.right)
       this.height = computeHeight(this.parentHeight, this.top, this.bottom)
 
-      this.$emit('resizing', this.left, this.top, this.width, this.height)//改变包含的component样式
+      this.$emit('resizing', this.left, this.top, this.width, this.height)
     },
     changeWidth (val) {
       const [newWidth, _] = snapToGrid(this.grid, val, 0, this.scale)
@@ -779,13 +785,13 @@ export default {
 
       if (this.resizing) {
         this.resizing = false
-        // await this.conflictCheck()
+        await this.conflictCheck()
         this.$emit('refLineParams', refLine)
         this.$emit('resizestop', this.left, this.top, this.width, this.height)
       }
       if (this.dragging) {
         this.dragging = false
-        // await this.conflictCheck()
+        await this.conflictCheck()
         this.$emit('refLineParams', refLine)
         this.$emit('dragstop', this.left, this.top)
       }
@@ -861,242 +867,209 @@ export default {
           activeTop = this.top
           activeBottom = this.top + height
         }
+        //这里主要是考虑多个活动元素的情况，整体移动时计算其整体区域
+        // const { groupWidth, groupHeight, groupLeft, groupTop, bln } = await this.getActiveAll(nodes)
+        // if (!bln) {
+        //   width = groupWidth
+        //   height = groupHeight
+        //   activeLeft = groupLeft
+        //   activeRight = groupLeft + groupWidth
+        //   activeTop = groupTop
+        //   activeBottom = groupTop + groupHeight
+        // }
+        this.lineDisplay([activeLeft, activeRight, activeTop, activeBottom, width, height])
 
-        // 初始化辅助线数据
-        const temArr = new Array(3).fill({ display: false, position: '', origin: '', lineLength: '' })
-        const refLine = { vLine: [], hLine: [] }
-        for (let i in refLine) { refLine[i] = JSON.parse(JSON.stringify(temArr)) }
+      }
+    },
+    //[activeLeft, activeRight, activeTop, activeBottom, width, height]
+    lineDisplay (active) {
+      let activeLeft = active[0];
+      let activeRight = active[1];
+      let activeTop = active[2];
+      let activeBottom = active[3];
+      let width = active[4];
+      let height = active[5];
 
-        // 获取当前父节点下所有子节点
-        let nodes = this.$el.parentNode.childNodes
-        nodes = Array.prototype.slice.call(nodes);
-        nodes.push(this.$el.parentNode)
+      // const coms = this.currPageComponents;
 
-        let tem = {
-          value: { x: [[], [], []], y: [[], [], []] },
-          display: [],
-          position: []
-        }
+      let display = {
+        x: [[], [], []],
+        y: [[], [], []]
+      };//display
 
-        for (let item of nodes) {
+      let xMin = Math.max(activeLeft - this.snapTolerance, 0)
+      let xMax = Math.min(activeRight + this.snapTolerance, this.parentWidth)
+      let yMin = Math.max(activeTop - this.snapTolerance, 0)
+      let yMax = Math.min(activeBottom + this.snapTolerance, this.parentHeight)
+      let XY = this.componentsXY();
+      let X = XY.x;
+      let Y = XY.y;
+      let len = X.length
+      let x = [activeLeft, activeLeft + width / 2, activeRight];
+      let y = [activeTop, activeTop + height / 2, activeBottom];
 
-          if (item.className !== undefined && !item.className.includes(this.classNameActive) &&
-            item.getAttribute('data-is-snap') !== null && item.getAttribute('data-is-snap') !== 'false' || item.id == "editor") {
+      const temArr = new Array(3).fill({ display: false, position: '' })
+      const refLine = { vLine: [], hLine: [] }
+      for (let i in refLine) { refLine[i] = JSON.parse(JSON.stringify(temArr)) }
 
-            const w = item.offsetWidth
-            const h = item.offsetHeight
-            const [l, t] = this.formatTransformVal(item.style.transform)
-            const r = l + w // 对齐目标right
-            const b = t + h // 对齐目标的bottom
+      for (let j = 0; j < 3; j++) {//左中右
+        for (let i = 0; i < len; i++) {
+          if (X[i] >= xMin && X[i] <= xMax) {
+            let detX = Math.abs(X[i] - x[j])
 
-            //两组件，水平/垂直中线分别比较，判断是否小于snapTolerance
-            const hc = Math.abs((activeTop + height / 2) - (t + h / 2)) <= this.snapTolerance // 水平中线
-            const vc = Math.abs((activeLeft + width / 2) - (l + w / 2)) <= this.snapTolerance // 垂直中线
-
-            //两组件，上下边线，分别比较
-            const ts = Math.abs(t - activeBottom) <= this.snapTolerance // 从上到下
-            const TS = Math.abs(b - activeBottom) <= this.snapTolerance // 从上到下
-            const bs = Math.abs(t - activeTop) <= this.snapTolerance // 从下到上
-            const BS = Math.abs(b - activeTop) <= this.snapTolerance // 从下到上
-            // 添加item中线与激活元素边线
-            const hts = Math.abs((t + h / 2) - activeTop) <= this.snapTolerance
-            const Hbs = Math.abs((t + h / 2) - activeBottom) <= this.snapTolerance
-
-            //左右边线分别比较
-            const ls = Math.abs(l - activeRight) <= this.snapTolerance // 外左
-            const LS = Math.abs(r - activeRight) <= this.snapTolerance // 外左
-            const rs = Math.abs(l - activeLeft) <= this.snapTolerance // 外右
-            const RS = Math.abs(r - activeLeft) <= this.snapTolerance // 外右
-            // 添加item中线与激活元素边线
-            const vls = Math.abs((l + w / 2) - activeLeft) <= this.snapTolerance
-            const Vrs = Math.abs((l + w / 2) - activeRight) <= this.snapTolerance
-
-            tem['display'] = [ts, TS, bs, BS, hc, hc,
-              hts, Hbs,
-              ls, LS, rs, RS, vc, vc,
-              vls, Vrs]//是否显示
-
-            tem['position'] = [t, b, t, b, t + h / 2, t + h / 2,
-              t + h / 2, t + h / 2,
-              l, r, l, r, l + w / 2, l + w / 2,
-              l + w / 2, l + w / 2]
-
-            // bln_=item.id=="editor"?false:bln;
-            //吸附，标线显示范围计算
-            if (ts) {
-              if (this.handle) {
-                if (this.handle.includes('b')) {
-                  this.bottom = this.parentHeight - t;
-                }
-              } else {
-                this.top = t - height
-                this.bottom = this.parentHeight - this.top - height
-              }
-            }
-            if (bs) {
-              if (this.handle) {
-                if (this.handle.includes('t')) {
-                  this.top = t;
-                }
-              } else {
-                this.top = t
-                this.bottom = this.parentHeight - this.top - height
-              }
-            }
-            if (TS) {
-              if (this.handle) {
-                if (this.handle.includes('b')) {
-                  this.bottom = this.parentHeight - b;
-                }
-              } else {
-                this.top = b - height
-                this.bottom = this.parentHeight - this.top - height
-              }
-            }
-            if (BS) {
-              if (this.handle) {
-                if (this.handle.includes('t')) {
-                  this.top = b
-                }
-              } else {
-                this.top = b
-                this.bottom = this.parentHeight - this.top - height
-              }
-            }
-
-            if (ls) {
-              if (this.handle) {
-                if (this.handle.includes('r')) {
-                  this.right = this.parentWidth - l;
-                }
-              } else {
-                this.left = l - width
-                this.right = this.parentWidth - this.left - width
-              }
-            }
-            if (rs) {
-              if (this.handle) {
-                if (this.handle.includes('l')) {
-                  this.left = l;
-                }
-              } else {
-                this.left = l
-                this.right = this.parentWidth - this.left - width
-              }
-            }
-            if (LS) {
-              if (this.handle) {
-                if (this.handle.includes('r')) {
-                  this.right = this.parentWidth - r;
-                }
-              } else {
-                this.left = r - width
-                this.right = this.parentWidth - this.left - width
-              }
-            }
-            if (RS) {
-              if (this.handle) {
-                if (this.handle.includes('l')) {
-                  this.left = r;
-                }
-              } else {
-                this.left = r
-                this.right = this.parentWidth - this.left - width
-              }
-            }
-            if (hc) {
-              if (this.handle) {
-                if (this.handle.includes('t')) {
-                  this.top = b + t - this.parentHeight + this.bottom
-                } else if (this.handle.includes('b')) {
-                  this.bottom = this.parentHeight + this.top - b - t
-                }
-              } else {
-                this.top = t + h / 2 - height / 2
-                this.bottom = this.parentHeight - this.top - height
-              }
-            }
-            if (vc) {
-              if (this.handle) {
-                if (this.handle.includes('l')) {
-                  this.left = r + l - this.parentWidth + this.right
-                } else if (this.handle.includes('r')) {
-                  this.right = this.left + this.parentWidth - r - l
-                }
-              } else {
-                this.left = l + w / 2 - width / 2
-                this.right = this.parentWidth - this.left - width
-              }
-            }
-
-            // 添加中线与边线对齐
-            if (hts) {
-              if (this.handle) {
-                if (this.handle.includes('t')) {
-                  this.top = t + h / 2;
-                }
-              } else {
-                this.top = t + h / 2;
-                this.bottom = this.parentHeight - this.top - height;
-              }
-            }
-            if (Hbs) {
-              if (this.handle) {
-                if (this.handle.includes('b')) {
-                  this.bottom = this.parentHeight - t - h / 2
-                }
-              } else {
-                this.top = t + h / 2 - height;
-                this.bottom = this.parentHeight - this.top - height;
-              }
-            }
-            if (vls) {
-              if (this.handle) {
-                if (this.handle.includes('l')) {
-                  this.left = l + w / 2
-                }
-              } else {
-                this.left = l + w / 2
-                this.right = this.parentWidth - this.left - width
-              }
-            }
-            if (Vrs) {
-              if (this.handle) {
-                if (this.handle.includes('r')) {
-                  this.right = this.parentWidth - l - w / 2
-                }
-              } else {
-                this.left = l + w / 2 - width
-                this.right = this.parentWidth - this.left - width
-              }
-            }
-
-            // 辅助线坐标与是否显示(display)对应的数组,易于循环遍历
-            const arrTem = [0, 1, 0, 1, 2, 2,
-              2, 2,
-              0, 1, 0, 1, 2, 2,
-              2, 2
-            ]
-            for (let i = 0; i <= arrTem.length; i++) {
-              // 前6为Y辅助线,后6为X辅助线
-              const xory = i < 8 ? 'y' : 'x'
-              const horv = i < 8 ? 'hLine' : 'vLine'
-
-
-
-              if (tem.display[i]) {
-                // const { origin, length } = this.calcLineValues(tem.value[xory][arrTem[i]])
-                refLine[horv][arrTem[i]].display = tem.display[i]
-                refLine[horv][arrTem[i]].position = tem.position[i] + 'px'
-                // refLine[horv][arrTem[i]].origin = origin
-                // refLine[horv][arrTem[i]].lineLength = length
-              }
+            if (detX < this.snapTolerance) {
+              display.x[j].push({ position: X[i], det: detX })
             }
           }
         }
-        this.$emit('refLineParams', refLine)
       }
+      for (let j = 0; j < 3; j++) {//y:焦点元素边线，中线
+        for (let i = 0; i < len; i++) {//Y：其他
+
+          if (Y[i] >= yMin && Y[i] <= yMax) {
+            let detY = Math.abs(Y[i] - y[j])
+            if (detY < this.snapTolerance) {
+              display.y[j].push({ position: Y[i], det: detY })
+            }
+          }
+        }
+      }
+      display.x[0].sort((a, b) => a.det - b.det);
+      display.x[1].sort((a, b) => a.det - b.det);
+      display.x[2].sort((a, b) => a.det - b.det);
+      display.y[0].sort((a, b) => a.det - b.det);
+      display.y[1].sort((a, b) => a.det - b.det);
+      display.y[2].sort((a, b) => a.det - b.det);
+      let xIndex = -1, yIndex = -1;
+      let detX = this.snapTolerance, detY = this.snapTolerance;
+      //标线
+      for (let i = 0; i < 3; i++) {
+        // 取到最近的线，根据xIndex可以知道是左、中、右哪个最近
+        if (display.x[i][0]) {
+          if (display.x[i][0].det < detX) {
+            xIndex = i;
+            detX = display.x[i][0].det;
+          }
+          refLine['vLine'][i].display = true
+          refLine['vLine'][i].position = display.x[i][0].position + 'px'
+        }
+        if (display.y[i][0]) {
+          if (display.y[i][0].det < detY) {
+            yIndex = i;
+            detY = display.y[i][0].det
+          }
+          refLine['hLine'][i].display = true
+          refLine['hLine'][i].position = display.y[i][0].position + 'px'
+        }
+      }
+      //      if (this.dragging) {
+      //   this.handleDrag(e);
+      // } else if (this.resizing) {
+      //   debounce(() => {
+      //     this.handleResize(e)
+      //   }, 200)
+      // }
+      // 吸附
+      if (this.resizing) {
+        switch (this.handle) {//resize
+          case 'tl':
+            if (display.x[0][0]) this.left = display.x[0][0].position;
+            if (display.y[0][0]) this.top = display.y[0][0].position;
+            break;
+          case 'ml':
+            if (display.x[0][0]) this.left = display.x[0][0].position;
+            break;
+          case "bl":
+            console.log("bl", display.x[0][0], display.y, this.left, this.right)
+            if (display.x[0][0] != undefined) this.left = display.x[0][0].position;
+            if (display.y[2][0]) this.bottom = this.parentHeight - display.y[2][0].position;
+            console.log("bl", display.x[0][0], display.y, this.left, this.right)
+            break;
+          case 'tr':
+            if (display.x[2][0]) this.right = this.parentWidth - display.x[2][0].position;
+            if (display.y[0][0]) this.top = display.y[0][0].position;
+            break;
+          case 'mr':
+            if (display.x[2][0]) this.right = this.parentWidth - display.x[2][0].position;
+            break;
+          case "br":
+            if (display.x[2][0]) this.right = this.parentWidth - display.x[2][0].position;
+            if (display.y[2][0]) this.bottom = this.parentHeight - display.y[2][0].position;
+            break;
+          case 'bm':
+            if (display.y[2][0]) this.bottom = this.parentHeight - display.y[2][0].position;
+            break;
+          case "tm":
+            if (display.y[0][0]) this.top = display.y[0][0].position;
+            break;
+        }
+      } else if (this.dragging) {
+        console.log("drag")
+        switch (xIndex) {//drag
+          case 0:
+            this.left = display.x[0][0].position;
+            this.right = this.parentWidth - this.left - width
+            break;
+          case 1:
+            this.left = display.x[1][0].position - width / 2;
+            this.right = this.parentWidth - display.x[1][0].position + width / 2
+            break;
+          case 2:
+            this.right = this.parentWidth - display.x[2][0].position;
+            this.left = display.x[2][0].position - width
+            break;
+        }
+        switch (yIndex) {
+          case 0:
+            this.top = display.y[0][0].position;
+            this.bottom = this.parentHeight - this.top - height
+            break;
+          case 1:
+            this.top = display.y[1][0].position - height / 2;
+            this.bottom = this.parentHeight - this.top - height / 2
+            break;
+          case 2:
+            this.bottom = this.parentHeight - display.y[2][0].position;
+            this.top = this.parentHeight - this.bottom - height
+            break;
+        }
+      }
+      this.$emit('refLineParams', refLine)
+
     },
+    componentsXY () {
+
+      let nodes = this.$el.parentNode.childNodes
+      nodes = Array.prototype.slice.call(nodes);
+      nodes.push(this.$el.parentNode)
+      let XY = {
+        x: [],
+        y: []
+      };//所有的边线，中线
+      for (let item of nodes) {
+
+        if (item.className !== undefined && !item.className.includes(this.classNameActive) &&
+          item.getAttribute('data-is-snap') !== null && item.getAttribute('data-is-snap') !== 'false' || item.id == "editor") {
+          const w = item.offsetWidth
+          const h = item.offsetHeight
+          const [l, t] = this.formatTransformVal(item.style.transform)
+          const r = l + w // 对齐目标right
+          const b = t + h // 对齐目标的bottom
+
+          XY.x.push(l)
+          XY.x.push(l + w / 2)
+          XY.x.push(r)
+
+          XY.y.push(t)//上
+          XY.y.push(t + h / 2)//中
+          XY.y.push(b)//下
+        }
+        XY.x.sort();
+        XY.y.sort();
+      }
+      return XY;
+    },
+
     calcLineValues (arr) {
       const length = Math.max(...arr) - Math.min(...arr) + 'px'
       const origin = Math.min(...arr) + 'px'
@@ -1141,6 +1114,7 @@ export default {
     }
   },
   computed: {
+
     handleStyle () {
       return (stick) => {
         if (!this.handleInfo.switch) return { display: this.enabled ? 'block' : 'none' }

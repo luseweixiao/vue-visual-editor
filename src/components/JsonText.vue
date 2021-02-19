@@ -1,5 +1,9 @@
 <template>
   <div class="jsontext">
+    <div class="jsontext-header">
+      <i class="iconfont iconcha close"
+         @click="close"></i>
+    </div>
     <textarea class="jsontext-content"
               v-bind:value="json"
               @change="setPage($event)">
@@ -20,6 +24,9 @@ export default {
     setPage (e) {
       let page = JSON.parse(e.target.value);
       this.$store.commit("setPageList", page);
+    },
+    close () {
+      this.$emit("close")
     }
   },
   computed: {
@@ -31,24 +38,29 @@ export default {
 </script>
 <style lang="scss" scoped>
 .jsontext {
-  width: 100%;
+  width: 40%;
   padding-top: 10px;
   height: 150px;
   z-index: 100;
   box-sizing: border-box;
+  top: 50px;
+  left: 50%;
+  position: fixed;
 
   .jsontext-header {
     width: 100%;
     height: 20px;
     position: relative;
-    background-color: antiquewhite;
+    background-color: rgba(215, 215, 215, 1);
 
     .close {
       width: 20px;
       height: 20px;
+      line-height: 20px;
       position: absolute;
-      top: 0;
+      top: 0px;
       right: 0;
+      color: red;
     }
   }
   .jsontext-content {

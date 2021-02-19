@@ -10,7 +10,7 @@ const store = new Vuex.Store({
     pageList: [],//页面列表
     editorStyleData: {//编辑区全局数据
       width: 600,
-      height: 300
+      height: 700
     },
     pageID: 0,//页ID,应该存在localstorage或是服务器，作为页面唯一ID
     currPageIndex: -1,//当前页面下标
@@ -19,7 +19,9 @@ const store = new Vuex.Store({
     currComponentIndex: -1,//当前组件下表
     // copyData: null,//复制粘贴剪切数据，后面做组件复制时用
     menuShow: false,//右键菜单显示
-    preventDeactivation: true//false:当点其他位置时，组件会失去焦点,true：点击其他位置，组件不会失去焦点
+    preventDeactivation: true,//false:当点其他位置时，组件会失去焦点,true：点击其他位置，组件不会失去焦点
+    snap: true,
+    snapTolerance: 6
   },
   mutations: {
     setPreventDeactivation (state, payload) {

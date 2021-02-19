@@ -36,10 +36,15 @@
         <!-- ----------预览------------------ -->
         <button @click="showPreview"
                 class="home-center-header-preview"> 预览</button>
+        <button @click="showJson"
+                class="home-center-header-json"> JSON</button>
         <!-- <div class="previewPlane">预览区</div> -->
         <preview v-if="isPreview"
                  v-on:closePreview="isPreview=false"
                  :page="pageList[currPageIndex]" />
+        <JsonText v-if="pageList.length>0 && currPageIndex>-1&&isShowJson"
+                  :page="pageList[currPageIndex]"
+                  v-on:close="handleCloseJson" />
       </div>
       <!---------------画布------------------- -->
       <div class="home-center-editor"
@@ -49,8 +54,6 @@
         <Editor v-if="currPageIndex!=-1 && editMode" />
       </div>
 
-      <JsonText v-if="pageList.length>0 && currPageIndex>-1"
-                :page="pageList[currPageIndex]" />
     </section>
 
     <!------ 右侧属性面板 ------------------------->
@@ -97,7 +100,8 @@ export default {
       activeManagePageName: 'page-tags',
       activeToolboxName: 'propertiesPlane',
       isPreview: false,
-      rightPlaneName: 'attribute-list'
+      rightPlaneName: 'attribute-list',
+      isShowJson: false
     }
   },
   methods: {
@@ -130,8 +134,14 @@ export default {
 
     showPreview () {
       if (this.editMode) this.isPreview = true;
+      this.isShowJson = false;
     },
-
+    showJson () {
+      this.isShowJson = true;
+    },
+    handleCloseJson () {
+      this.isShowJson = false;
+    },
     handleDrop (e) {
       e.preventDefault();
       e.stopPropagation();
@@ -204,6 +214,7 @@ $bottomHeight: 150px; //jsontext高度
       height: calc(100% - #{$headerHeight});
       padding-bottom: 50px;
       overflow-y: auto;
+      overflow-x: hidden;
     }
   }
   .home-left,
@@ -238,8 +249,10 @@ $bottomHeight: 150px; //jsontext高度
       border-bottom: $bd;
       line-height: $headerHeight;
       background-color: $bgColor;
+      z-index: 100;
 
-      button.home-center-header-preview {
+      button.home-center-header-preview,
+      button.home-center-header-json {
         margin-left: 100px;
         width: 70px;
         height: 30px;
@@ -259,10 +272,11 @@ $bottomHeight: 150px; //jsontext高度
     }
     & > .home-center-editor {
       max-width: 100%;
-      max-height: calc(100% - #{$headerHeight} - #{$bottomHeight});
+      max-height: calc(100% - #{$headerHeight});
       overflow: auto;
       // padding: 0 20px 0 20px;
       padding: 10px;
+      z-index: 99;
     }
   }
   & > .home-right {

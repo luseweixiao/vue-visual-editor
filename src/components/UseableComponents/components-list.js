@@ -36,7 +36,7 @@ const list = [
     icon: 'el-icon-picture',
     locked: false,
     images: [require("@/assets/1.jpg"), require("@/assets/2.jpg"),
-    require("@/assets/3.jpg")],
+    require("@/assets/3.jpg")],//实际组件是动态绑定src的，需要先引入
     auto: true,
     autoTime: 2,
     style: {

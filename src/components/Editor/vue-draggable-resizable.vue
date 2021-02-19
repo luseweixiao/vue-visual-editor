@@ -873,7 +873,6 @@ export default {
         nodes.push(this.$el.parentNode)
 
         let tem = {
-          value: { x: [[], [], []], y: [[], [], []] },
           display: [],
           position: []
         }
@@ -1085,11 +1084,8 @@ export default {
 
 
               if (tem.display[i]) {
-                // const { origin, length } = this.calcLineValues(tem.value[xory][arrTem[i]])
                 refLine[horv][arrTem[i]].display = tem.display[i]
                 refLine[horv][arrTem[i]].position = tem.position[i] + 'px'
-                // refLine[horv][arrTem[i]].origin = origin
-                // refLine[horv][arrTem[i]].lineLength = length
               }
             }
           }

@@ -69,7 +69,6 @@ export default {
     },
     deletePage () {
       this.$store.commit("deletePage", this.index);
-      console.log("delete")
     },
   },
   computed: {

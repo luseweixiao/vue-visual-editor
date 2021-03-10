@@ -8,7 +8,8 @@
        backgroundColor:pageList[currPageIndex].style.backgroundColor,
        backgroundImage:pageList[currPageIndex].style.backgroundImage}"
        style=" box-shadow:0px 0px 2px 2px rgba(0,0,0,.2);"
-       @contextmenu="handleContextMenu">
+       @click="handleEditorClick"
+       @contextmenu.prevent>
 
     <!-- key不要用index，不然当调整图层时（图层与index一致），焦点组件会变化 -->
     <VueDraggableResizable v-for="(item,index) in pageList[currPageIndex].componentsData"
@@ -17,7 +18,7 @@
                            :h="Number(item.style.height)"
                            :x="Number(item.style.left)"
                            :y="Number(item.style.top)"
-                           :z="index"
+                           :z="index==currComponentIndex?888:index"
                            :parent="isParent"
                            :debug="false"
                            :isConflictCheck="false"
@@ -30,19 +31,25 @@
                            @dragstop="onDragStop"
                            @deactivated="onDeactivated"
                            :draggable="!item.locked"
-                           :resizable="!item.locked">
+                           :resizable="!item.locked"
+                           @contextmenu.native="handleContextMenu(arguments,item,index)"
+                           :active="index==currComponentIndex">
       <!-- 组件 -->
       <component :is="item.component"
                  class="editor-component"
                  :style="getStyle(item)"
                  :data-itemindex="index"
                  :propvalue="item.propValue"
-                 v-on:textChange="onTextChange(arguments,index)" />
+                 v-on:textChange="onTextChange(arguments,index)"
+                 :element="item" />
       <!-- 右键菜单 -->
-      <ContextMenu v-if="item==currComponent&&menuShow"
-                   :isLocked="item.locked" />
-    </VueDraggableResizable>
 
+    </VueDraggableResizable>
+    <ContextMenu :isShow="menuShow"
+                 :isLocked="isLocked"
+                 :style="{left:menuLeft,top:menuTop}"
+                 style="position:absolute;z-index:900;"
+                 @close="handleClose" />
     <!-- 对齐线 -->
     <span class="ref-line v-line"
           v-for="(item,index) in vLine"
@@ -80,8 +87,9 @@ export default {
       hLine: [],
       menuTop: 0,
       menuLeft: 0,
-      isParent: true,//是否进行父元素区域限制，只在拖拽时开启
+      isParent: true,//是否进行父元素区域限制
       currItem: null,
+      isLocked: false,
     }
   },
   methods: {
@@ -89,7 +97,7 @@ export default {
       return getComponentStyle(item);
     },
     onTextChange (val, index) {
-      return debounce(function (val, index) {
+      return debounce(function () {
         // console.log("onTextChange", val)
         let currComponent = val[0];
         currComponent.propValue = val[1];
@@ -99,7 +107,6 @@ export default {
     },
 
     onDeactivated () {
-      this.$store.commit("hideContextMenu")
     },
 
     onDragStop () {
@@ -107,20 +114,25 @@ export default {
     },
     //vals=[left,top,widht,height]
     onResizing (vals, item, index) {
-      this.$nextTick(function () {
-        item.style.left = vals[0];
-        item.style.top = vals[1];
-        item.style.width = vals[2];
-        item.style.height = vals[3];
+      if (this.menuShow) {
+        this.$store.commit("changeMenuShow", false);
+      }
 
-        this.$store.commit("setCurrComponent", { component: item, index });
-      })
+      item.style.left = vals[0];
+      item.style.top = vals[1];
+      item.style.width = vals[2];
+      item.style.height = vals[3];
+
+      this.$store.commit("setCurrComponent", { component: item, index });
+
 
     },
 
     //vals=[left,top]
     onDragging (vals, item, index) {
-
+      if (this.menuShow) {
+        this.$store.commit("changeMenuShow", false);
+      }
 
       this.isParent = true;
 
@@ -135,7 +147,6 @@ export default {
     onActivated (item, index) {
       this.currItem = item;
       this.$store.commit("setCurrComponent", { component: item, index });
-      this.$store.commit("hideContextMenu")
     },
 
     // 辅助线回调事件
@@ -152,13 +163,19 @@ export default {
       })
     },
 
-    handleContextMenu (e) {
+    handleContextMenu (val, item, index) {
+      let e = val[0];
       e.stopPropagation();
       e.preventDefault();
-      let target = this.findParentNodeByClassName(e.target, 'editor-component');
-      if (target && Number(target.dataset.itemindex) == this.currComponentIndex) {
-        this.$store.commit('showContextMenu');
-      }
+
+      this.$store.commit("setCurrComponent", { component: item, index });
+      this.menuTop = e.offsetY + item.style.top + 'px';
+      this.menuLeft = e.offsetX + item.style.left + 'px';
+      this.isLocked = item.locked;
+      this.$store.commit("changeMenuShow", true);
+    },
+    handleClose () {
+      this.$store.commit("changeMenuShow", false);
     },
 
     findParentNodeByClassName (el, classname) {
@@ -168,7 +185,14 @@ export default {
         node = node.parentNode;
       } while (node)
       return null
-    }
+    },
+    handleEditorClick (e) {
+      console.log("handleEditorClick", this.currComponentIndex)
+      if (e.target && e.target.id == "editor") {
+        this.$store.commit("changeCurrComponentIndex", -1);
+        this.$store.commit("changeMenuShow", false);
+      }
+    },
 
   },
   computed: {
@@ -187,8 +211,7 @@ export default {
   width: 100%;
   height: 100%;
 }
-.contextmenu {
-  position: absolute;
-  z-index: 999;
+.outline {
+  outline: #00ff00 dotted thick;
 }
 </style>

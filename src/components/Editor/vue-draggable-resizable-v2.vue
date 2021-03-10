@@ -277,7 +277,11 @@ export default {
       enabled: this.active,
       resizing: false,
       dragging: false,
-      zIndex: this.z
+      zIndex: this.z,
+      XY: {
+        x: [],
+        y: []
+      }
     }
   },
 
@@ -901,7 +905,8 @@ export default {
       let xMax = Math.min(activeRight + this.snapTolerance, this.parentWidth)
       let yMin = Math.max(activeTop - this.snapTolerance, 0)
       let yMax = Math.min(activeBottom + this.snapTolerance, this.parentHeight)
-      let XY = this.componentsXY();
+      // let XY = this.componentsXY();
+      let XY = this.XY;
       let X = XY.x;
       let Y = XY.y;
       let len = X.length
@@ -980,10 +985,10 @@ export default {
             if (display.x[0][0]) this.left = display.x[0][0].position;
             break;
           case "bl":
-            console.log("bl", display.x[0][0], display.y, this.left, this.right)
+            // console.log("bl", display.x[0][0], display.y, this.left, this.right)
             if (display.x[0][0] != undefined) this.left = display.x[0][0].position;
             if (display.y[2][0]) this.bottom = this.parentHeight - display.y[2][0].position;
-            console.log("bl", display.x[0][0], display.y, this.left, this.right)
+            // console.log("bl", display.x[0][0], display.y, this.left, this.right)
             break;
           case 'tr':
             if (display.x[2][0]) this.right = this.parentWidth - display.x[2][0].position;
@@ -1004,7 +1009,7 @@ export default {
             break;
         }
       } else if (this.dragging) {
-        console.log("drag")
+        // console.log("drag")
         switch (xIndex) {//drag
           case 0:
             this.left = display.x[0][0].position;
@@ -1042,12 +1047,12 @@ export default {
       let nodes = this.$el.parentNode.childNodes
       nodes = Array.prototype.slice.call(nodes);
       nodes.push(this.$el.parentNode)
-      let XY = {
-        x: [],
-        y: []
-      };//所有的边线，中线
+      // let XY = {
+      //   x: [],
+      //   y: []
+      // };//所有的边线，中线
       for (let item of nodes) {
-
+        // console.log(this.classNameActive, item.className)
         if (item.className !== undefined && !item.className.includes(this.classNameActive) &&
           item.getAttribute('data-is-snap') !== null && item.getAttribute('data-is-snap') !== 'false' || item.id == "editor") {
           const w = item.offsetWidth
@@ -1056,18 +1061,18 @@ export default {
           const r = l + w // 对齐目标right
           const b = t + h // 对齐目标的bottom
 
-          XY.x.push(l)
-          XY.x.push(l + w / 2)
-          XY.x.push(r)
+          this.XY.x.push(l)
+          this.XY.x.push(l + w / 2)
+          this.XY.x.push(r)
 
-          XY.y.push(t)//上
-          XY.y.push(t + h / 2)//中
-          XY.y.push(b)//下
+          this.XY.y.push(t)//上
+          this.XY.y.push(t + h / 2)//中
+          this.XY.y.push(b)//下
         }
-        XY.x.sort();
-        XY.y.sort();
+        this.XY.x.sort();
+        this.XY.y.sort();
       }
-      return XY;
+      // return XY;
     },
 
     calcLineValues (arr) {
@@ -1114,7 +1119,12 @@ export default {
     }
   },
   computed: {
-
+    // nodes () {
+    //   let nodes = this.$el.parentNode.childNodes
+    //   nodes = Array.prototype.slice.call(nodes);
+    //   nodes.push(this.$el.parentNode)
+    //   return nodes;
+    // },
     handleStyle () {
       return (stick) => {
         if (!this.handleInfo.switch) return { display: this.enabled ? 'block' : 'none' }
@@ -1212,6 +1222,11 @@ export default {
   },
 
   watch: {
+    dragging (val) {
+      if (val) {
+        this.componentsXY();
+      }
+    },
     active (val) {
       this.enabled = val
 

@@ -370,11 +370,13 @@ export default {
     },
     // 元素触摸按下
     elementTouchDown (e) {
+      e.stopPropagation();
       eventsFor = events.touch
 
       this.elementDown(e)
     },
     elementMouseDown (e) {
+      e.stopPropagation();
       eventsFor = events.mouse
       this.elementDown(e)
     },
@@ -414,7 +416,6 @@ export default {
 
         this.mouseClickPosition.mouseX = e.touches ? e.touches[0].pageX : e.pageX
         this.mouseClickPosition.mouseY = e.touches ? e.touches[0].pageY : e.pageY
-
         this.mouseClickPosition.left = this.left
         this.mouseClickPosition.right = this.right
         this.mouseClickPosition.top = this.top
@@ -425,7 +426,7 @@ export default {
         if (this.parent) {
           this.bounds = this.calcDragLimits()
         }
-
+        // console.log("bounds", this.bounds)
         addEvent(document.documentElement, eventsFor.move, this.move)
         addEvent(document.documentElement, eventsFor.stop, this.handleUp)
       }
@@ -516,7 +517,7 @@ export default {
       const top = this.top
       const right = this.right
       const bottom = this.bottom
-
+      // console.log(minW, minH, maxW, maxH, this.left, this.top, this.right, this.bottom, this.width, this.height)
       if (this.lockAspectRatio) {
         if (minW / minH > aspectFactor) {
           minH = minW / aspectFactor
@@ -623,7 +624,7 @@ export default {
       const tmpDeltaY = axis && axis !== 'x' ? mouseClickPosition.mouseY - (e.touches ? e.touches[0].pageY : e.pageY) : 0
 
       const [deltaX, deltaY] = snapToGrid(grid, tmpDeltaX, tmpDeltaY, this.scaleRatio)
-
+      console.log(this.bounds)
       const left = restrictToBounds(mouseClickPosition.left - deltaX, bounds.minLeft, bounds.maxLeft)
       const top = restrictToBounds(mouseClickPosition.top - deltaY, bounds.minTop, bounds.maxTop)
       if (this.onDrag(left, top) === false) {
@@ -635,7 +636,7 @@ export default {
       this.top = top
       this.right = right
       this.bottom = bottom
-
+      console.log("drag")
       await this.snapCheck()
       this.$emit('dragging', this.left, this.top)
     },
@@ -770,6 +771,7 @@ export default {
     },
     // 从控制柄松开
     async handleUp (e) {
+      e.stopPropagation();
       this.handle = null
 
       // 初始化辅助线数据
@@ -919,7 +921,7 @@ export default {
               t + h / 2, t + h / 2,
               l, r, l, r, l + w / 2, l + w / 2,
               l + w / 2, l + w / 2]
-
+            // console.log("display", ls, rs, vls)
             // bln_=item.id=="editor"?false:bln;
             //吸附，标线显示范围计算
             if (ts) {
@@ -1197,7 +1199,9 @@ export default {
         width: this.computedWidth,
         height: this.computedHeight,
         zIndex: this.zIndex,
+        outline: this.enabled ? ' blue dotted thin' : 'none',
         ...(this.dragging && this.disableUserSelect ? userSelectNone : userSelectAuto)
+
       }
     },
     // 控制柄显示与否

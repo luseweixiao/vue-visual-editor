@@ -20,7 +20,7 @@
         <el-input v-if="item.key == 'redirect'"
                   v-model="item.param"
                   type="textarea"
-                  placeholder="请输入完整的 URL:http://www.baidu.com" />
+                  placeholder="请输入完整的 URL或页面ID" />
         <el-input v-if="item.key == 'alert'"
                   v-model="item.param"
                   type="textarea"

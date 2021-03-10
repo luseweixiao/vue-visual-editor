@@ -3,7 +3,7 @@ const list = [
   {
     component: 'u-text',
     label: '文本',
-    propValue: '文本',
+    propValue: '\u6587\u672c\u6587\u672c',
     icon: 'el-icon-edit',
     locked: false,
     style: {

@@ -5,14 +5,16 @@
     <button class="preview-bg-btn closs"
             @click="close">关闭</button>
 
-    <div :style="{width:page.style.width+'px',
-       height:page.style.height+'px',
-       backgroundColor:page.style.backgroundColor,
-       backgroundImage:page.style.backgroundImage}"
+    <div :style="{width:currPage.style.width+'px',
+       height:currPage.style.height+'px',
+       background:currPage.style.background,
+       backgroundColor:currPage.style.backgroundColor,
+       backgroundImage:currPage.style.backgroundImage,
+       }"
          style=" box-shadow:0px 0px 2px 2px rgba(0,0,0,.2);"
          class="preview-container"
          ref="previewContainer">
-      <component v-for="(item,index) in page.componentsData"
+      <component v-for="(item,index) in currPage.componentsData"
                  :key="item.id"
                  :is="item.component"
                  class="editor-component"
@@ -28,6 +30,8 @@
 <script>
 import { getComponentStyle } from '@/utils/style'
 import { events } from '@/utils/events'
+import { mapState } from 'vuex';
+import FileSaver from 'file-saver'
 
 export default {
   props: {
@@ -36,26 +40,38 @@ export default {
       type: Object
     }
   },
+  data () {
+    return {
+      currPage: this.page
+    }
+  },
   methods: {
     save () {
-      console.log("save", this.$refs.previewContainer)
+      console.log("save")
+      // console.log("save", this.$refs.previewContainer)
+      //将pageList生成json
+      let pagesJson = JSON.stringify(this.pageList);
+      //可以读取模板文件将json插入作为数据
+      const blob = new Blob([pagesJson], { type: '' })
+      FileSaver.saveAs(blob, 'pages.json')
     },
     getStyles (item) {
       return getComponentStyle(item);
     },
     close () {
-      console.log("closePreview")
       this.$emit("closePreview");
     },
     handleClick (item) {
-      console.log(events["redirect"])
       Object.keys(item.events).forEach((event) => {
-        // console.log(events[event], item.events)
-        events[event](item.events[event])
+        let index = events[event](item.events[event]);
+        if (index <= this.pageList.length) {
+          this.currPage = this.pageList[index - 1]
+        }
       })
     }
   },
   computed: {
+    ...mapState(["pageList"]),
   }
 }
 </script>

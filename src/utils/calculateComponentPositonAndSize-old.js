@@ -1,4 +1,4 @@
-import { calculateRotatedPointCoordinate, getCenterPoint } from './translate'
+import { calculateRotatedPointCoordinate, getCenterPoint } from './translate-old'
 import store from '@/store'
 
 const funcs = {

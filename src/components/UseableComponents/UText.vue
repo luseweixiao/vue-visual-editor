@@ -1,6 +1,4 @@
 <template>
-  <!-- <textarea @input="handleInput"
-            v-bind:value="propvalue" /> -->
   <div class="utext">
     <pre class="utext-text">{{propvalue}}</pre>
   </div>
@@ -18,27 +16,9 @@ export default {
       type: Object,
     }
   },
-  data () {
-    return {
-      // textValue: this.propvalue
-    }
-  },
-  methods: {
-    // handleInput (e) {
-    //   // this.textValue = e.target.value;
-    //   this.$emit("textChange", this.element, e.target.value);
-    // }
-  },
-  computed: {
-  }
 }
 </script>
 <style lang="scss" scoped>
-/* textarea {
-  resize: none;
-  box-sizing: border-box;
-  overflow: hidden;
-} */
 .utext {
   margin: 0;
   padding: 0;

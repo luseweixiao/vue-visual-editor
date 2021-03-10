@@ -3,9 +3,9 @@
     <!----- 左侧页面管理与组件管理 ---------------->
     <section class="home-left">
       <a :class="{isactive:activeManagePageName=='page-tags'}"
-         @click="showPageTags">页面管理</a>
+         @click="changeActiveManagePageName">页面管理</a>
       <a :class="{isactive:activeManagePageName=='component-list'}"
-         @click="showComponentList">组件列表</a>
+         @click="changeActiveManagePageName">组件列表</a>
       <component :is="activeManagePageName"
                  class="home-left-controlplane"></component>
     </section>
@@ -20,17 +20,27 @@
         <div v-if="currPageIndex>=0"
              style="display:inline-block;margin-left:40px;">
           <span>画布：</span>
-          <input type="number"
+          <!-- <input type="number"
                  @change="changePageStyle('width',$event)"
                  v-bind:value="pageList[currPageIndex].style.width"
                  style="width:70px;"
-                 :disabled="pageList[currPageIndex].componentsData.length>0" />
-          <span>×</span>
+                 :disabled="pageList[currPageIndex].componentsData.length>0" /> -->
           <input type="number"
+                 v-model="pageWidth"
+                 style="width:70px;"
+                 :disabled="pageList[currPageIndex].componentsData.length>0"
+                 min=1 />
+          <span>×</span>
+          <!-- <input type="number"
                  @change="changePageStyle('height',$event)"
                  v-bind:value="pageList[currPageIndex].style.height"
                  style="width:70px;"
-                 :disabled="pageList[currPageIndex].componentsData.length>0" />
+                 :disabled="pageList[currPageIndex].componentsData.length>0" /> -->
+          <input type="number"
+                 v-model="pageHeight"
+                 style="width:70px;"
+                 :disabled="pageList[currPageIndex].componentsData.length>0"
+                 min=1 />
         </div>
 
         <!-- ----------预览------------------ -->
@@ -61,9 +71,9 @@
       <!-- <a>属性</a>
       <attribute-list /> -->
       <a :class="{isactive:rightPlaneName=='attribute-list'}"
-         @click="showAttributeList">属性</a>
+         @click="changeRightPlane">属性</a>
       <a :class="{isactive:rightPlaneName=='event-list'}"
-         @click="showEventList">事件</a>
+         @click="changeRightPlane">事件</a>
       <component :is="rightPlaneName"></component>
     </section>
   </div>
@@ -105,33 +115,20 @@ export default {
     }
   },
   methods: {
-    changePageStyle (type, e) {
-      var style = this.pageList[this.currPageIndex].style;
-      console.log(type, e.target.value);
-      style[type] = Number(e.target.value);
-      this.$store.commit('changePageStyle', style);
+    changeActiveManagePageName () {
+      if (this.activeManagePageName == 'page-tags') {
+        this.activeManagePageName = 'component-list';
+      } else {
+        this.activeManagePageName = 'page-tags';
+      }
     },
-
-    showPageTags () {
-      this.activeManagePageName = 'page-tags';
+    changeRightPlane () {
+      if (this.rightPlaneName == 'attribute-list') {
+        return this.rightPlaneName = 'event-list';
+      } else {
+        this.rightPlaneName = 'attribute-list';
+      }
     },
-
-    showComponentList () {
-      this.activeManagePageName = 'component-list';
-    },
-
-    showAttributeList () {
-      this.rightPlaneName = 'attribute-list';
-    },
-
-    showEventList () {
-      this.rightPlaneName = 'event-list';
-    },
-
-    // handleClick () {
-    //   console.log('management-change')
-    // },
-
     showPreview () {
       if (this.editMode) this.isPreview = true;
       this.isShowJson = false;
@@ -152,7 +149,8 @@ export default {
       component.id = generateID();
       this.$store.commit('addComponentToCurrPage',
         component
-      )
+      );
+
     },
 
     handleDragOver (e) {
@@ -165,9 +163,39 @@ export default {
       // this.$store.commit('changeCurrComponentIndex', -1)
       // this.$store.commit('hideContexeMenu')
     },
+    changePageStyle (type, e) {
+      var style = this.pageList[this.currPageIndex].style;
+      console.log(type, e.target.value);
+      style[type] = Number(e.target.value);
+      this.$store.commit('changePageStyle', style);
+    },
   },
   computed: {
-    ...mapState(["currPageIndex", "editMode", "pageList", "currComponent"])
+    ...mapState(["currPageIndex", "editMode", "pageList", "currComponent", "menuShow"]),
+
+    pageWidth: {
+      set (value) {
+        var style = this.pageList[this.currPageIndex].style;
+        // console.log(type,value);
+        style['width'] = Number(value);
+        this.$store.commit('changePageStyle', style);
+      },
+      get () {
+        return this.pageList[this.currPageIndex].style.width;
+      }
+    },
+
+    pageHeight: {
+      set (value) {
+        var style = this.pageList[this.currPageIndex].style;
+        // console.log(type,value);
+        style['height'] = Number(value);
+        this.$store.commit('changePageStyle', style);
+      },
+      get () {
+        return this.pageList[this.currPageIndex].style.height;
+      }
+    }
   }
 }
 </script>

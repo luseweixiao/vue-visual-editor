@@ -2,12 +2,13 @@
   <div class="attribuite-list">
     <el-form>
       <el-form-item v-if="currComponentIndex==-1 && currPageIndex>-1"
-                    label="背景颜色">
-        <el-color-picker v-model="pageList[currPageIndex].style.backgroundColor"></el-color-picker>
+                    label="背景颜色"
+                    key="pagebackgroundcolor">
+        <el-color-picker v-model="pageStyle.backgroundColor"></el-color-picker>
       </el-form-item>
       <el-form-item v-if="currComponentIndex==-1 && currPageIndex>-1"
                     label="背景图片">
-        <el-switch :value="pageList[currPageIndex].style.backgroundImage!='none'"
+        <el-switch :value="pageStyle.backgroundImage!='none'"
                    active-color="#13ce66"
                    inactive-color="#ff4949"
                    @change="handleChangeBg">
@@ -25,6 +26,7 @@
                          v-model="styleKeys[name]"></el-color-picker>
         <el-color-picker v-else-if="name == 'backgroundColor'"
                          v-model="styleKeys[name]"></el-color-picker>
+
         <el-select v-else-if="name == 'textAlign'"
                    v-model="styleKeys[name]">
           <el-option v-for="item in textAlignOptions"
@@ -66,7 +68,7 @@
 
       <!-- font-style\text-decoration -->
       <el-form-item label="文本样式"
-                    v-if="currComponent && !excludes.includes(currComponent.component)&&currComponentIndex>=0">
+                    v-if="hasContent">
         <el-button @click="changeFontStyle"
                    :class="{isitalic:isitalic,buttonnormal:!isitalic}">
           <i class="iconfont iconitalics"></i>
@@ -79,13 +81,14 @@
       </el-form-item>
 
       <el-form-item label="内容"
-                    v-if="currComponent && !excludes.includes(currComponent.component)&&currComponentIndex>=0">
+                    v-if="hasContent"
+                    key=textarea>
         <el-input type="textarea"
                   v-model="currComponent.propValue" />
       </el-form-item>
 
       <el-form-item label="循环播放"
-                    v-if="currComponentIndex>=0&&excludes.includes(currComponent.component)">
+                    v-if="isInExcludes">
         <el-switch v-bind:value="currComponent.auto"
                    active-color="#13ce66"
                    inactive-color="#ff4949"
@@ -94,7 +97,7 @@
 
       </el-form-item>
       <el-form-item label="间隔秒数"
-                    v-if="currComponentIndex>=0&&excludes.includes(currComponent.component)">
+                    v-if="isInExcludes">
         <el-input type="number"
                   v-model="currComponent.autoTime"
                   min=1></el-input>
@@ -271,6 +274,19 @@ export default {
     borderStyle () {
       return this.currComponent.style.borderStyle.split(' ');
     },
+    hasContent () {
+      return this.currComponent && !this.isInExcludes && this.currComponentIndex >= 0;
+    },
+    isInExcludes () {
+      return this.currComponentIndex >= 0 && this.excludes.includes(this.currComponent.component);
+    },
+    pageStyle () {
+      let style = {};
+      if (this.pageList.length > 0) {
+        style = this.pageList[this.currPageIndex].style;
+      }
+      return style;
+    }
   }
 }
 

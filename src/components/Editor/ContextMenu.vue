@@ -1,96 +1,91 @@
 <template>
   <div class="contextmenu"
-       v-show="menuShow">
-    <ul>
-      <li @click="deleteComponent">删除</li>
-      <li @click="toTop">置于顶层</li>
-      <li @click="toBottom">置于底层</li>
-      <li @click="up">上移一层</li>
-      <li @click="down">下移一层</li>
-      <li @click="lock"
-          :class="{lock:isLocked,unlock:!isLocked}">锁定大小和位置</li>
-      <li @click="unlock"
-          :class="{lock:!isLocked,unlock:isLocked}">解除大小和位置锁定</li>
+       :class="{block:show,none:!show}">
+    <ul @click="handleMenu">
+      <li data-item="deleteComponent">删除</li>
+      <li data-item="toTop">置于顶层</li>
+      <li data-item="toBottom">置于底层</li>
+      <li data-item="up">上移一层</li>
+      <li data-item="down">下移一层</li>
+      <li :class="{lock:isLocked,unlock:!isLocked}"
+          data-item="lock">锁定大小和位置</li>
+      <li :class="{lock:!isLocked,unlock:isLocked}"
+          data-item="unlock">解除大小和位置锁定</li>
     </ul>
   </div>
 </template>
 
 <script>
-import { mapState } from "vuex"
+// import { mapState } from "vuex"
 export default {
   props: {
     isLocked: {
       require: true,
       type: Boolean,
+    },
+    isShow: {
+      require: true,
+      type: Boolean,
     }
-
   },
   data () {
     return {
-
     }
   },
   methods: {
-    deleteComponent (e) {
+    handleMenu (e) {
       e.stopPropagation();
       e.preventDefault();
+      switch (e.srcElement.dataset.item) {
+        case 'deleteComponent':
+          this.deleteComponent();
+          break;
+        case 'toTop':
+          this.toTop();
+          break;
+        case 'toBottom':
+          this.toBottom();
+          break;
+        case 'up':
+          this.up();
+          break;
+        case 'down':
+          this.down();
+          break;
+        case 'lock':
+          this.lock();
+          break;
+        case 'unlock':
+          this.unlock();
+          break;
+      }
+      this.$emit("close");
+    },
+    deleteComponent () {
       this.$store.commit("deleteComponent");
-      this.$store.commit("hideContextMenu");
     },
-    toTop (e) {
-      e.stopPropagation();
-      e.preventDefault();
+    toTop () {
       this.$store.commit("topComponentIndex");
-      this.$store.commit("hideContextMenu");
     },
-    toBottom (e) {
-      e.stopPropagation();
-      e.preventDefault();
+    toBottom () {
       this.$store.commit("bottomComponentIndex");
-      this.$store.commit("hideContextMenu")
     },
-    up (e) {
-      e.stopPropagation();
-      e.preventDefault();
-
+    up () {
       this.$store.commit("upComponentIndex");
-      this.$store.commit("hideContextMenu")
     },
-    down (e) {
-      e.stopPropagation();
-      e.preventDefault();
+    down () {
       this.$store.commit("downComponentIndex");
-      this.$store.commit("hideContextMenu")
     },
-    lock (e) {
-      e.stopPropagation();
-      e.preventDefault();
+    lock () {
       this.$store.commit("lockComponent");
-      this.$store.commit("hideContextMenu")
     },
-    unlock (e) {
-      e.stopPropagation();
-      e.preventDefault();
+    unlock () {
       this.$store.commit("unlockComponent");
-      this.$store.commit("hideContextMenu")
     }
   },
   computed: {
-    ...mapState(["currComponent", "pageList", "menuShow"]),
-    top () {
-      if (this.currComponent) {
-        return this.currComponent.style.top + this.currComponent.style.height;
-      } else {
-        return 0;
-      }
-    },
-    left () {
-      if (this.currComponent) {
-        return this.currComponent.style.left + this.currComponent.style.width / 2;
-      } else {
-        return 0;
-      }
-
+    show () {
+      return this.isShow;
     }
   }
 
@@ -100,6 +95,12 @@ export default {
 .contextmenu {
   position: absolute;
   z-index: 1000;
+}
+.block {
+  display: block;
+}
+.none {
+  display: none;
 }
 .contextmenu ul {
   list-style: none;
@@ -114,7 +115,7 @@ export default {
 .contextmenu ul li {
   overflow: hidden;
   font-size: 12px;
-  whtie-space: nowrap;
+  white-space: nowrap;
   text-overflow: ellipsis;
   cursor: pointer;
   border-bottom: 1px solid #e4e7ed;

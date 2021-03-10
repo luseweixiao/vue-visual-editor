@@ -14,7 +14,7 @@ const store = new Vuex.Store({
     },
     pageID: 0,//页ID,应该存在localstorage或是服务器，作为页面唯一ID
     currPageIndex: -1,//当前页面下标
-    currComponentList: [],//当前画布上组件
+    // currComponentList: [],//当前画布上组件
     currComponent: null,
     currComponentIndex: -1,//当前组件下表
     // copyData: null,//复制粘贴剪切数据，后面做组件复制时用
@@ -87,6 +87,7 @@ const store = new Vuex.Store({
 
     addComponentToCurrPage (state, component) {
       store.commit("addComponentToPage", { pageIndex: state.currPageIndex, component });
+      state.menuShow = false;
     },
 
     addComponentToPage (state, payload) {
@@ -112,14 +113,8 @@ const store = new Vuex.Store({
     },
 
     // ----------------右键菜单-------------------------
-    showContextMenu (state) {
-      if (state.currComponentIndex != -1) {
-        state.menuShow = true;
-      }
-    },
-
-    hideContextMenu (state) {
-      state.menuShow = false;
+    changeMenuShow (state, payload) {
+      state.menuShow = payload;
     },
 
     deleteComponent (state) {

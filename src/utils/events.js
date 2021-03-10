@@ -2,7 +2,12 @@
 const events = {
   redirect (url) {
     if (url) {
-      window.location.href = url;
+      let regex = /^\d+$/;
+      if (regex.test(url)) {
+        return Number(url);
+      } else {
+        window.location.href = url;
+      }
     }
   },
 
